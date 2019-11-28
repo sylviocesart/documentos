@@ -1,0 +1,39 @@
+DEPLOIANDO O REGISTRY DO OPENSHIFT PARA O GLUSTERFS
+
+PASSO INICIAL:
+
+BACKUP - SNAP DAS MAQUINAS DO CLUSTER OKD DE PRODUÇÃO
+
+1.
+# ansible-playbook -i hosts-prd openshift-ansible/playbooks/openshift-glusterfs/registry.yml -vvv
+
+2. Disco do gluster nas maquinas: cbrnpaprlx028.intra.caixa.gov.br, cbrnpaprlx029.intra.caixa.gov.br e cbrnpaprlx030.intra.caixa.gov.br
+Disk /dev/sdb: 279.2 GB
+
+3. Aplicar regras de firewall nas máquinas do registry-gluster
+firewall-cmd --permanent --add-port=24007-24009/tcp
+firewall-cmd --permanent --add-port=49152-49154/tcp
+firewall-cmd --permanent --add-port=2222/tcp
+firewall-cmd --permanent --add-port=24007-24008/tcp
+firewall-cmd --permanent --add-port=24007/tcp
+firewall-cmd --permanent --add-port=24008/tcp
+firewall-cmd --permanent --add-port=49152-49251/tcp
+firewall-cmd --permanent --add-port=24010/tcp
+firewall-cmd --permanent --add-port=3260/tcp
+firewall-cmd --permanent --add-port=111/tcp
+
+
+OKD DE PRODUTOS
+openshift_hosted_registry_storage_volume_size=100Gi
+openshift_hosted_registry_selector="node-role.kubernetes.io/infra=true"
+openshift_hosted_registry_replicas=3
+openshift_storage_glusterfs_registry_block_host_vol_size=200
+
+OKD DE PRODUÇÃO
+openshift_hosted_registry_storage_volume_size=100Gi
+openshift_hosted_registry_selector="node-role.kubernetes.io/infra=true"
+openshift_hosted_registry_replicas=3
+openshift_storage_glusterfs_registry_block_host_vol_size=160
+
+========================
+ERROS
