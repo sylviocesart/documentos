@@ -1,0 +1,91 @@
+#!/bin/sh
+clear
+
+# RESCAN para encontrar novos discos
+find /sys/class/scsi_host/host*/scan | while read line; do echo - - - > $line; done;
+find /sys/class/scsi_device/*/device/rescan | while read line; do echo - - - > $line; done;
+
+FILE="/etc/multipath.conf"
+FILE_TMP_01="/tmp/file_01"
+FILE_TMP_02="/tmp/file_02"
+FILE_TMP_03="/tmp/file_03"
+FILE_TMP_04="/tmp/file_04"
+#RULES="/etc/udev/rules.d/99-oracle-asmdevices.rules"
+
+CMD=$(multipath -ll |grep mpath | cut -d" " -f1,2 | sed 's/(//g;s/)//g;s/ /,/g' > $FILE_TMP_01)
+
+echo -n "Os discos pertencem ao novo STORAGE (y/n)"
+read resp
+if [ "$resp" = "n" ]; then
+        export DISCO="ASMDISK_00"
+else
+        export DISCO="ASMDISK_05"
+fi
+
+while IFS=, read -r a b; do
+        echo "  multipath {"
+        echo "          wwid                    $b"
+        echo "          alias                   $DISCO${b:0-4}afd"
+        echo "  }"
+done < $FILE_TMP_01 > $FILE_TMP_02
+
+# Criando regras do multipath
+echo ""
+echo "#################################"
+echo "#  Criando regras de multipath  #"
+echo "#################################"
+echo ""
+sed "-i.bkp" '$e cat /tmp/file_02' $FILE
+
+# Realizando o reload nas configurações do multipath
+echo ""
+echo "########################################################"
+echo "#  Realizando o reload nas configurações do multipath  #"
+echo "########################################################"
+echo ""
+multipath -r
+
+# Gerando lista dos discos
+echo ""
+echo "##############################"
+echo "#  Gerando lista dos discos  #"
+echo "##############################"
+echo ""
+sleep 40
+DISCOS=$(cat $FILE_TMP_02 | grep alias | awk '{print $2}'> $FILE_TMP_03)
+
+# Formatando os discos encontrados
+echo ""
+echo "######################################"
+echo "#  Formatando os discos encontrados  #"
+echo "######################################"
+echo ""
+for disco in `cat $FILE_TMP_03`; do echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/mapper/$disco; done 2>/dev/null
+for disco in `cat $FILE_TMP_03`; do /sbin/partprobe /dev/mapper/$disco; done 2>/dev/null
+
+
+# Criando regras de udev
+#cp -f $RULES $RULES.bkp
+#echo ""
+#echo "############################"
+#echo "#  Criando regras de udev  #"
+#echo "############################"
+#echo ""
+#echo "#####################################################" >> $RULES
+#echo "#### linhas abaixo inseridas em $(date +%d"."%m"."%y" --> "%H":"%M) ####" >> $RULES
+#echo "#####################################################" >> $RULES
+#while IFS=, read -r a b; do
+#       echo "KERNEL==\"dm*\", SUBSYSTEM==\"block\", ENV{DM_SERIAL}==\"$b\",SYMLINK+=\"oracleasm/$DISCO${b:0-4}\", OWNER=\"oracle\", GROUP=\"asmadmin\", MODE=\"0660\" ,OPTIONS:=\"nowatch\""
+#done < $FILE_TMP_01 >> $RULES
+
+#cat $RULES
+
+# Realizando o reload nas regras de UDEV
+#echo ""
+#echo "############################################"
+#echo "#  Realizando o reload nas regras de UDEV  #"
+#echo "############################################"
+#echo ""
+#udevadm control --reload-rules
+#udevadm trigger --type=devices --action=change
+# FIM
