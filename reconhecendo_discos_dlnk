@@ -1,0 +1,153 @@
+=====  reconhecer disco por dlnk - RDM ======
+# find /sys/class/scsi_host/host*/scan | while read line; do echo - - - > $line; done;
+# find /sys/class/scsi_device/*/device/rescan | while read line; do echo - - - > $line; done;
+# /opt/DynamicLinkManager/bin/dlnkmgr view -path
+# /opt/DynamicLinkManager/bin/dlnkmgr add -path
+# /opt/DynamicLinkManager/bin/dlnkmgr view -lu
+# lsblk
+------
+# Para remoção do disco:
+/opt/DynamicLinkManager/bin/dlnkmgr delete -path
+
+%d_numat,"%Domain Admins"    ALL=(ALL)    ALL
+%d_nucat,"%Domain Admins"    ALL=(ALL)    ALL
+
+==========================
+# ls /sys/class/scsi_device/
+0:0:0:0    2:0:0:0 
+# echo 1 > /sys/class/scsi_device/0\:0\:0\:0/device/rescan
+# find /sys/class/scsi_device/*/device/rescan | while read line; do echo - - - > $line; done;
+
+
+#################
+Usando LVM para criar volume
+vgcreate vg-ppc /dev/sdb1
+lvcreate -n lv -l +100%FREE vg-ppc
+mkfs.ext4 /dev/mapper/vg-ppc-lv
+
+################
+Usando LVM para extender volume
+vgextend mysql </dev/disco>
+lvextend -l +100%FREE /dev/<vg_grupo>/<lv_grupo> -rt
+lvextend -l +100%FREE /dev/<vg_grupo>/<lv_grupo> -r
+
+
+##########################
+Limpando history: 
+cat /dev/null > ~/.bash_history && history -c && exit
+
+##########################
+
+rsync -avhz /novo-www2/ppc /var/www/
+
+##################
+partprobe -s /dev/sda
+hdparm -z /dev/sda
+partx -a /dev/sda3
+partx -opts /dev/sda3 wholedisk
+partx  /dev/sda3 wholedisk
+partx  /dev/sda3
+cat /proc/partitions
+ls /dev/sda*
+ldconfig
+ls /dev/sda*
+blockdev --rereadpt -v /dev/sda
+blockdev --rereadpt -v /dev/sda3
+kpartx -u /dev/sda3
+kpartx -u /dev/sda
+kpartx -u /dev/sda3
+kpartx -u /dev/sda3
+dmesg |grep sda
+partx /dev/sad
+partx /dev/sda
+partx /dev/sda3
+blockdev --rereadpt -v /dev/sda
+clear
+ls -l /dev/sda*
+
+
+# FORMANTANDO VÁRIOS DISCOS DE UMA SÓ VEZ, TOMANDO UMA "lista" COM OS DEVICES A SEREM FORMATADOS.
+
+for i in `cat lista`; do echo -e "o\nn\np\n1\n\n\nw" | fdisk /dev/$i; done
+for i in `cat lista`; do /sbin/partprobe /dev/$i; done
+
+
+for i in `cat lista`; do /usr/lib/udev/scsi_id --whitelisted --page=0x83 --device=/dev/$i; done > NAA_discos
+
+
+# Criando uma lista de NAA a partir de um arquivo, nesse caso o arquivo é o "NAA_discos"
+for i in `cat NAA_discos`; do echo 'KERNEL=="sddlm*1", SUBSYSTEM=="block" , ENV{ID_SERIAL}=='\"$i\"', SYMLINK+="oracleasm/ASMDISK_0260", OWNER="oracle", GROUP="asmadmin", MODE="0660"'; done > nova_lista
+
+----------------------------------------------
+udevadm control --reload-rules
+`lsblk|grep 500G|grep disk|grep sddlm|awk '{system("/sbin/partprobe /dev/"$1)}'`
+udevadm control --reload-rules
+
+
+udevadm control --reload-rules
+udevadm trigger --type=devices --action=change
+
+------------------------------------
+
+00E60A / /dev/sdbvg 001928 Offline(E)
+                /dev/sdbvh 001929 Offline(E)
+                /dev/sdbvi 001930 Offline(E)
+                /dev/sdbvj 001931 Online(E)
+
+
+/usr/lib/udev/scsi_id --whitelisted --page=0x83 --device=/dev/sdbvj
+
+
+sdbvg sdbvh sdbvi sdbvj
+
+
+/dev/sddlmoad   configured      /dev/sdbvg       1       0       0     106
+                                /dev/sdbvh       2       0       0     106
+                                /dev/sdbvi       3       0       0     106
+                                /dev/sdbvj       4       0       0     106
+
+
+
+dlmcfgmgr -v
+
+echo 1 > /sys/block/sdbvg/device/delete
+echo 1 > /sys/block/sdbvh/device/delete
+echo 1 > /sys/block/sdbvi/device/delete
+echo 1 > /sys/block/sdbvj/device/delete
+
+dlmcfgmgr -u /dev/sddlmoad
+
+[root@scx3402212 ~]# dlmcfgmgr -u /dev/sddlmoad
+KAPL10339-I This operation will change the configuration of HDLM devices. Do you want to continue? [y/n]: y
+KAPL10341-I The HDLM device configurations have been changed.
+KAPL10302-I /usr/sbin/dlmcfgmgr completed normally.
+[root@scx3402212 ~]#
+
+0A00 - 100TB
+
+1A      Offline(E) Own    33842378          0    0 sddlmbk
+1A      Offline(E) Own    34750393          0    0 sddlmcp
+1A      Offline(E) Own   219908585          0    0 sddlmda
+1A      Offline(E) Own    27651109          0    0 sddlmdb
+1A      Offline(E) Own    27700094          0    0 sddlmdc
+1A      Offline(E) Own    27841644          0    0 sddlmdd
+
+1C      Offline(E) Own    28311498          0    0 sddlmde
+1C      Offline(E) Own    27870240          0    0 sddlmdf
+1C      Offline(E) Own    27707873          0    0 sddlmdg
+1C      Offline(E) Own    27900977          0    0 sddlmdh
+
+[root@scx3402219 ~]# lsblk | grep 190T
+sdbtk                                    69:1952  0  190T  0 disk
+sdbtl                                    69:1968  0  190T  0 disk
+sdbtm                                    69:1984  0  190T  0 disk
+sdbtn                                    69:2000  0  190T  0 disk
+[root@scx3402219 ~]# /usr/lib/udev/scsi_id --whitelisted --page=0x83 --device=/dev/sdbtk
+360060e800884a700005084a70000a000
+[root@scx3402219 ~]# /usr/lib/udev/scsi_id --whitelisted --page=0x83 --device=/dev/sdbtl
+360060e800884a700005084a70000a000
+[root@scx3402219 ~]# /usr/lib/udev/scsi_id --whitelisted --page=0x83 --device=/dev/sdbtm
+360060e800884a700005084a70000a000
+[root@scx3402219 ~]# /usr/lib/udev/scsi_id --whitelisted --page=0x83 --device=/dev/sdbtn
+360060e800884a700005084a70000a000
+
